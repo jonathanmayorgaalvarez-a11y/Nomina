@@ -1,11 +1,48 @@
-<div align="center">
+name: Build APK
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+on:
+  workflow_dispatch:   # se ejecuta manualmente
+  push:
+    branches: [ main ]
 
-  <h1>Built with AI Studio</h2>
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
 
-</div>
+      - name: Build web
+        run: npm run build
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Add Capacitor Android
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap add android
+          npx cap sync
+
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NominaFacil-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
